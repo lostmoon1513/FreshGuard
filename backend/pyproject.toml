@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "freshguard-backend"
+version = "0.1.0"
+description = "FreshGuard backend: LangGraph verification engine and FastAPI service"
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic>=2.6,<3",
+    "pydantic-settings>=2.2,<3",
+    "httpx>=0.27,<1",
+    # API and storage (M5)
+    "fastapi>=0.115",
+    "uvicorn>=0.30",
+    "sqlalchemy>=2.0",
+    "psycopg[binary]>=3.1",
+    # Orchestration (M4) and LangChain integrations (see docs/DECISIONS.md D20-D21).
+    # Lower bounds only: these packages move fast and an upper cap can make installs unsolvable.
+    "langgraph>=0.6",
+    "langchain-core>=0.3",
+    "langchain-google-genai>=4.0",
+    "langchain-groq>=0.3",
+    "langchain-tavily>=0.2",
+    "langchain-community>=0.3",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "ruff>=0.5",
+]
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
