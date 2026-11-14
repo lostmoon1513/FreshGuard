@@ -19,7 +19,7 @@ import sys
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -159,7 +159,7 @@ def main(argv: list[str] | None = None) -> int:
     run_dir = (
         Path(args.resume)
         if args.resume
-        else HERE / "results" / f"run-{datetime.now(timezone.utc):%Y%m%d-%H%M%S}"
+        else HERE / "results" / f"run-{datetime.now(UTC):%Y%m%d-%H%M%S}"
     )
     run_dir.mkdir(parents=True, exist_ok=True)
     results_path = run_dir / "results.jsonl"
@@ -178,7 +178,7 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     meta = {"run": run_dir.name, "base_url": args.base_url, "dataset": Path(args.dataset).name,
-            "started": datetime.now(timezone.utc).isoformat(timespec="seconds")}  # fmt: skip
+            "started": datetime.now(UTC).isoformat(timespec="seconds")}  # fmt: skip
     lock = threading.Lock()
     finished = 0
     outage_streak = 0
@@ -216,7 +216,7 @@ def main(argv: list[str] | None = None) -> int:
             + str(run_dir)
         )
     finally:
-        meta["finished"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        meta["finished"] = datetime.now(UTC).isoformat(timespec="seconds")
         write_report(run_dir, items, meta)
         client.close()
     print(f"\nReport: {run_dir / 'report.md'}")

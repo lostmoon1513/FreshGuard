@@ -1,5 +1,5 @@
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from types import SimpleNamespace
 
 import pytest
@@ -61,7 +61,7 @@ class FakeClient:
 
 def verification(label="stale"):
     ev = SimpleNamespace(stance="contradicts", url="https://x.org", tier=2,
-                         quoted_span="a quote", published_at=datetime(2026, 1, 1, tzinfo=timezone.utc))  # fmt: skip
+                         quoted_span="a quote", published_at=datetime(2026, 1, 1, tzinfo=UTC))  # fmt: skip
     neutral = SimpleNamespace(
         stance="neutral",
         url="https://n.org",
