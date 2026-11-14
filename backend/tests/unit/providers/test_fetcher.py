@@ -223,3 +223,21 @@ def test_fake_fetcher():
     with pytest.raises(FetchError, match="404"):
         fetch(f, "https://a.com/missing")
     assert len(f.calls) == 3
+
+
+LM = {"last-modified": "Tue, 03 Nov 2026 10:00:00 GMT"}
+
+
+def test_last_modified_header_becomes_modified_at_when_page_has_none():
+    page = "<html><body><p>Chancellor since 2025.</p></body></html>"
+    f = fetcher({"https://example.com/a": html_response(page, **LM)})
+    doc = fetch(f)
+    assert doc.modified_at == datetime(2026, 11, 3, 10, tzinfo=UTC) and doc.published_at is None
+
+
+def test_page_metadata_beats_last_modified_header_and_junk_header_is_ignored():
+    html = '<meta property="article:modified_time" content="2026-10-20"><p>Some page text here.</p>'
+    f = fetcher({"https://example.com/a": html_response(html, **LM)})
+    assert fetch(f).modified_at == datetime(2026, 10, 20, tzinfo=UTC)
+    f = fetcher({"https://example.com/a": html_response(HTML, **{"last-modified": "garbage"})})
+    assert fetch(f).modified_at is None

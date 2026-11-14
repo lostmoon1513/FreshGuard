@@ -31,7 +31,9 @@ a volatile position, "today", "this week").
 - slow: changes over months or years (current office holders, company leadership, populations, \
 laws, product line-ups, rankings).
 - static: a historical or timeless fact that cannot change (past events and dates, definitions, \
-mathematical or physical facts).
+mathematical facts, and long-settled physical or scientific facts such as the boiling point of \
+water at sea level or the speed of light). A claim about who holds a role or what is latest NOW \
+is never static.
 When unsure, choose slow. Optionally give `window_days`: how many days old evidence may be and \
 still count as current for this claim (omit to use the default).
 Return one item per claim, using the claim's index.
@@ -58,6 +60,11 @@ For each source decide:
 - supports: the source text states the claim is true as of its date.
 - contradicts: the source text states something that makes the claim false or out of date now \
 (a different value, a newer holder, replaced, ended, no longer true).
+A role or record with an end date, or words like former, until, stepped down, succeeded by or \
+replaced, whose end is on or before the given date, means the holder is NOT current: it \
+CONTRADICTS \
+a present-tense claim. A range such as "2022-2026" has ended if the given date is later than its \
+end. Judge each source by what it says about the present, not by the person it names.
 - neutral: off-topic, ambiguous, outdated in itself, or you are not sure. Prefer neutral over \
 guessing.
 For supports or contradicts, `quote` MUST be copied EXACTLY, character for character, from that \

@@ -14,7 +14,8 @@ Table (first matching row wins; see docs/RULES.md)
   2  no verified evidence                       -> UNVERIFIABLE
   3  strong support AND strong contradiction    -> POTENTIALLY_STALE  (credible sources conflict)
   4  strong contradiction                       -> STALE
-  5  strong support                             -> FRESH
+  5  strong support, nothing contradicts       -> FRESH
+  5b strong support but any verified contradiction -> POTENTIALLY_STALE (support contested)
   6  only weak evidence (tier 3, old, undated)  -> POTENTIALLY_STALE
 
 Rows 4 and 5 discount confidence by any opposing (weak) evidence but keep the label.
@@ -53,6 +54,7 @@ class DecisionReason(StrEnum):
     CREDIBLE_SOURCES_CONFLICT = "credible_sources_conflict"
     CREDIBLE_RECENT_CONTRADICTION = "credible_recent_contradiction"
     CREDIBLE_RECENT_SUPPORT = "credible_recent_support"
+    SUPPORT_CONTESTED = "support_contested"
     ONLY_WEAK_EVIDENCE = "only_weak_evidence"
 
 
@@ -125,6 +127,16 @@ def decide_claim(
             decisive_confidence(contra_score, support_score),
             DecisionReason.CREDIBLE_RECENT_CONTRADICTION,
             f"A credible, recent source contradicts the claim ({counts}).",
+            window,
+        )
+    # Row 5b: never "fresh" while any verified source (even a weak one) contradicts the claim.
+    if strong_support and contradicts:
+        return Decision(
+            Label.POTENTIALLY_STALE,
+            potentially_stale_confidence(noisy_or([support_score, contra_score])),
+            DecisionReason.SUPPORT_CONTESTED,
+            f"A credible source supports the claim but another source contradicts it "
+            f"({counts}); needs a human look.",
             window,
         )
     # Row 5.

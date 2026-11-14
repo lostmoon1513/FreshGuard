@@ -23,3 +23,31 @@ jobs:
       - run: pip install -e ".[dev]"
       - run: ruff check .
       - run: pytest -v
+
+  sdk:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: sdk
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[dev]" httpx
+      - run: ruff check .
+      - run: pytest -v
+
+  benchmark:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: benchmark
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e "../sdk[dev]" httpx
+      - run: ruff check .
+      - run: pytest -v

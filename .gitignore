@@ -25,3 +25,10 @@ htmlcov/
 # Node (dashboard, later)
 node_modules/
 dist/
+
+# Build outputs, benchmark runs, local state
+build/
+*.sqlite3
+benchmark/results/
+.env.*
+!.env.example

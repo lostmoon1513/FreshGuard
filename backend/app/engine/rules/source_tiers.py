@@ -43,7 +43,10 @@ TIER2_DOMAINS: frozenset[str] = frozenset(
         "reuters.com", "apnews.com", "bbc.com", "bbc.co.uk", "nytimes.com", "wsj.com",
         "ft.com", "bloomberg.com", "theguardian.com", "washingtonpost.com", "economist.com",
         "npr.org", "thehindu.com", "indianexpress.com", "nature.com", "science.org",
-        "arstechnica.com", "wikipedia.org", "britannica.com",
+        "arstechnica.com", "wikipedia.org", "britannica.com", "cbsnews.com", "nbcnews.com",
+        "abcnews.go.com", "cnn.com", "aljazeera.com", "dw.com", "theverge.com",
+        # vendors speaking about their own products (python.org, Microsoft docs, ...)
+        "python.org", "microsoft.com", "openai.com", "anthropic.com", "apple.com",
     }
 )  # fmt: skip
 

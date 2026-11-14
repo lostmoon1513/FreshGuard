@@ -1,9 +1,10 @@
 """Turn an HTML page into plain text, a title and a publish date. Pure: no I/O, no clock.
 
 Quotes are later checked as verbatim substrings of THIS text, so the extraction is deliberately
-simple and deterministic. The publish date is read only from structured metadata (JSON-LD
-`datePublished`, `article:published_time`, ...), never guessed from prose, and "modified" dates
-are ignored: they do not say when the content was written.
+simple and deterministic. Dates are read only from structured metadata (JSON-LD `datePublished`,
+`article:published_time`, ...), never guessed from prose. "Modified" dates are returned
+separately as `modified_at`: they do not say when the content was written, so only the
+credible-source rule in `nodes/sources.py` (D38) may use them as a recency signal.
 """
 
 from __future__ import annotations
@@ -32,6 +33,10 @@ _DATE_KEYS = (
     "parsely-pub-date", "sailthru.date", "citation_publication_date", "citation_date",
     "dc.date", "dcterms.date", "date",
 )  # fmt: skip
+_MODIFIED_KEYS = (
+    "article:modified_time", "og:article:modified_time", "og:updated_time", "datemodified",
+    "last-modified", "dcterms.modified",
+)  # fmt: skip
 _JSON_LD_PRIORITY = -1  # structured data beats meta tags
 
 
@@ -40,6 +45,7 @@ class ExtractedPage:
     title: str | None
     text: str
     published_at: datetime | None
+    modified_at: datetime | None = None
 
 
 class _Extractor(HTMLParser):
@@ -48,6 +54,7 @@ class _Extractor(HTMLParser):
         self.parts: list[str] = []
         self.title_parts: list[str] = []
         self.date_candidates: list[tuple[int, str]] = []
+        self.modified_candidates: list[str] = []
         self._skip_depth = 0
         self._in_title = False
         self._ld_chunks: list[str] | None = None
@@ -60,6 +67,8 @@ class _Extractor(HTMLParser):
             content = a.get("content", "").strip()
             if key in _DATE_KEYS and content:
                 self.date_candidates.append((_DATE_KEYS.index(key), content))
+            elif key in _MODIFIED_KEYS and content:
+                self.modified_candidates.append(content)
         elif tag == "time" and a.get("itemprop", "").lower() == "datepublished":
             if a.get("datetime"):
                 self.date_candidates.append((_DATE_KEYS.index("datepublished"), a["datetime"]))
@@ -108,14 +117,14 @@ def normalize_text(raw: str) -> str:
     return "\n".join(line for line in lines if line)
 
 
-def _json_ld_dates(blobs: list[str]) -> list[str]:
+def _json_ld_dates(blobs: list[str], field: str = "datePublished") -> list[str]:
     found: list[str] = []
 
     def walk(node: Any, depth: int = 0) -> None:
         if depth > 6:
             return
         if isinstance(node, dict):
-            value = node.get("datePublished")
+            value = node.get(field)
             if isinstance(value, str):
                 found.append(value)
             for child in node.values():
@@ -149,7 +158,16 @@ def extract_page(html: str, now: datetime) -> ExtractedPage:
         if published is not None:
             break
 
+    modified = None
+    for raw in _json_ld_dates(parser.json_ld, "dateModified") + parser.modified_candidates:
+        modified = parse_published_date(raw, now)
+        if modified is not None:
+            break
+
     title = normalize_text("".join(parser.title_parts)).replace("\n", " ") or None
     return ExtractedPage(
-        title=title, text=normalize_text("".join(parser.parts)), published_at=published
+        title=title,
+        text=normalize_text("".join(parser.parts)),
+        published_at=published,
+        modified_at=modified,
     )

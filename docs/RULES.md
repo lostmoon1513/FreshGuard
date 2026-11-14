@@ -8,6 +8,8 @@ Code: `backend/app/engine/rules/`. Pure functions: no LLM, no network, no clock 
 - **credible**: tier 1 or 2.
 - **recent**: published within the claim's freshness window (inclusive). No window (static) = always recent.
   Undated evidence, or dated more than 1 day in the future, is "undated" and is never recent.
+  Exception (D38, applied before the rules run): a tier 1-2 page's "last updated" date replaces its publish
+  date when later.
 - **strong**: verified AND credible AND recent.
 
 ## Freshness windows
@@ -24,7 +26,8 @@ Code: `backend/app/engine/rules/`. Pure functions: no LLM, no network, no clock 
 | 2 | no verified evidence | unverifiable (conf 0) | no_verified_evidence |
 | 3 | strong support AND strong contradiction | potentially_stale | credible_sources_conflict |
 | 4 | strong contradiction | stale | credible_recent_contradiction |
-| 5 | strong support | fresh | credible_recent_support |
+| 5 | strong support, no verified contradiction | fresh | credible_recent_support |
+| 5b | strong support but any verified contradiction (D40) | potentially_stale | support_contested |
 | 6 | only weak evidence (tier 3, old or undated) | potentially_stale | only_weak_evidence |
 
 ## Confidence (how strongly evidence backs the chosen label)

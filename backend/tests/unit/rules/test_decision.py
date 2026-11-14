@@ -83,10 +83,18 @@ def test_row5_credible_recent_support_is_fresh(tier):
     assert (d.label, d.reason) == (Label.FRESH, R.CREDIBLE_RECENT_SUPPORT)
 
 
-def test_row5_weak_contradiction_lowers_confidence_but_keeps_fresh():
-    alone = decide(FAST, [ev(SUP, T1, 5)])
-    opposed = decide(FAST, [ev(SUP, T1, 5), ev(CON, T3, 5)])
-    assert opposed.label == Label.FRESH and opposed.confidence < alone.confidence
+def test_row5b_any_verified_contradiction_blocks_fresh():
+    d = decide(FAST, [ev(SUP, T1, 5), ev(CON, T3, 5)])
+    assert d.label == Label.POTENTIALLY_STALE and d.reason == R.SUPPORT_CONTESTED
+    assert d.confidence <= 0.5
+
+
+def test_row5b_even_undated_contradiction_blocks_fresh():
+    assert decide(FAST, [ev(SUP, T1, 5), ev(CON, T3, None)]).label == Label.POTENTIALLY_STALE
+
+
+def test_row4_strong_contradiction_still_stale_despite_weak_support():
+    assert decide(FAST, [ev(CON, T1, 5), ev(SUP, T3, 5)]).label == Label.STALE
 
 
 def test_row5_static_claim_with_credible_support_uses_evidence_not_default():

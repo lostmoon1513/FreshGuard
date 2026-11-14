@@ -74,11 +74,12 @@ def test_accepts_pydantic_url_objects():
 
 
 def test_extra_tier1_domains_promote_vendor_sites():
-    url = "https://docs.python.org/3/whatsnew"
+    url = "https://docs.acme-tools.dev/guide"
     assert classify_source(url) == T3
-    assert classify_source(url, extra_tier1_domains=["python.org"]) == T1
-    assert classify_source(url, extra_tier1_domains=[" PYTHON.ORG. "]) == T1
-    assert classify_source("https://notpython.org", extra_tier1_domains=["python.org"]) == T3
+    assert classify_source(url, extra_tier1_domains=["acme-tools.dev"]) == T1
+    assert classify_source(url, extra_tier1_domains=[" ACME-TOOLS.DEV. "]) == T1
+    lookalike = "https://notacme-tools.dev"
+    assert classify_source(lookalike, extra_tier1_domains=["acme-tools.dev"]) == T3
     assert classify_source(url, extra_tier1_domains=["", "  "]) == T3
 
 

@@ -106,7 +106,13 @@ async def validate_sources(claim: ClaimWork, deps: Deps) -> ClaimWork:
             doc = page
             if doc.published_at is None and hit.published_at is not None:
                 doc = doc.model_copy(update={"published_at": hit.published_at})
-            sources.append(Source(document=_with_url_date(doc), tier=tier, from_fetch=True))
+            sources.append(
+                Source(
+                    document=_with_url_date(_with_credible_modified(doc, tier)),
+                    tier=tier,
+                    from_fetch=True,
+                )
+            )
             continue
         doc = _from_hit(hit, now)
         if doc is not None:
@@ -114,6 +120,18 @@ async def validate_sources(claim: ClaimWork, deps: Deps) -> ClaimWork:
     sources.sort(key=lambda s: int(s.tier))
     kept = tuple(sources[: limits.max_sources_per_claim])
     return claim.model_copy(update={"sources": kept})
+
+
+def _with_credible_modified(doc: Document, tier: SourceTier) -> Document:
+    """D38: a tier 1-2 page's 'last updated' date counts as its recency when later than its
+    publish date (or when it has none). Tier 3 never gets this: undated stays weak."""
+    if tier > SourceTier.TIER_2 or doc.modified_at is None:
+        return doc
+    if doc.published_at is not None and doc.modified_at <= doc.published_at:
+        return doc
+    if doc.modified_at > doc.fetched_at:
+        return doc  # a date in the future is not evidence of anything
+    return doc.model_copy(update={"published_at": doc.modified_at})
 
 
 async def _none() -> None:

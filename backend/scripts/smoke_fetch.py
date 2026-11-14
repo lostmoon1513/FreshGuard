@@ -18,7 +18,9 @@ from app.engine.providers.factory import build_fetcher, user_agent_for
 DEFAULT_URLS = [
     "https://www.npr.org/2021/11/30/1060035782/parag-agarwal-twitter-ceo",
     "https://www.bbc.com/news/world-asia-india-59472676",
-    "https://en.wikipedia.org/wiki/Twitter",
+    "https://en.wikipedia.org/wiki/Friedrich_Merz",
+    "https://www.britannica.com/biography/Olaf-Scholz",
+    "https://worldleaders.columbia.edu/directory/olaf-scholz",
 ]
 
 
@@ -38,6 +40,7 @@ async def main(urls: list[str]) -> int:
             continue
         print(f"  title:     {doc.title!r}")
         print(f"  published: {doc.published_at}")
+        print(f"  modified:  {doc.modified_at}")
         print(f"  text:      {len(doc.text)} chars; starts: {doc.text[:100]!r}")
     return 1 if failures else 0
 

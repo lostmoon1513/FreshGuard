@@ -18,6 +18,7 @@ class Document(BaseModel):
     title: str | None = None
     text: str = Field(min_length=1)
     published_at: AwareDatetime | None = None
+    modified_at: AwareDatetime | None = None  # page's own 'last updated'; see D38
     fetched_at: AwareDatetime
 
 

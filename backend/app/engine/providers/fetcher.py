@@ -22,6 +22,7 @@ from datetime import datetime
 from typing import Any, Protocol
 from urllib.parse import urljoin, urlsplit
 
+from app.engine.providers.dates import parse_published_date
 from app.engine.providers.errors import FetchError, UnsafeURLError
 from app.engine.providers.html_text import extract_page, normalize_text
 from app.engine.providers.http import HttpResponse, HttpTransportError
@@ -161,10 +162,13 @@ class HttpPageFetcher:
         decoded = _decode(resp)
         now = self._clock()
         if kind == "text/plain":
-            title, text, published = None, normalize_text(decoded), None
+            title, text, published, modified = None, normalize_text(decoded), None, None
         else:
             page = extract_page(decoded, now)
             title, text, published = page.title, page.text, page.published_at
+            modified = page.modified_at
+        if modified is None:
+            modified = parse_published_date(resp.headers.get("last-modified"), now)
         if not text:
             raise FetchError("page had no readable text", url)
         return Document(
@@ -172,6 +176,7 @@ class HttpPageFetcher:
             title=title,
             text=text[:MAX_PAGE_CHARS],
             published_at=published,
+            modified_at=modified,
             fetched_at=now,
         )
 

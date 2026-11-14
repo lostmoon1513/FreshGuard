@@ -19,7 +19,7 @@ Every verdict is one of four labels:
 ```
 backend/     FastAPI service + LangGraph verification engine (Python)
 sdk/         Thin Python client for the hosted API (added in milestone M6)
-benchmark/   Labeled claims + benchmark runner (M7)
+benchmark/   Labeled claims + runner + report (added in milestone M7)
 demo/        Demo RAG chatbot with an outdated knowledge base (M8)
 dashboard/   React + Tailwind monitoring UI (M9)
 docs/        Architecture notes, API contract, decisions, evaluation
