@@ -1,0 +1,39 @@
+# Render Blueprint. In Render: New > Blueprint > pick this repo.
+# Secrets marked sync:false are asked for in the dashboard; they are never stored in git.
+services:
+  - type: web
+    name: freshguard-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: LOG_JSON
+        value: "true"
+      - key: LLM_PROVIDER
+        value: gemini
+      - key: SEARCH_PROVIDER
+        value: tavily
+      - key: PROVIDER_BACKEND
+        value: langchain
+      - key: MAX_CONCURRENT_VERIFICATIONS
+        value: "2"
+      - key: DATABASE_URL
+        sync: false
+      - key: FRESHGUARD_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: TAVILY_API_KEY
+        sync: false
+      - key: SERPER_API_KEY
+        sync: false
+      - key: FETCH_CONTACT
+        sync: false
+      - key: CORS_ORIGINS
+        value: ""
