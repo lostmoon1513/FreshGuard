@@ -86,6 +86,17 @@ class VerificationService:
         record = await self._store.get(result_id)
         return record.result if record else None
 
+    async def get_record(self, result_id: str) -> VerificationRecord | None:
+        """The request plus its result (the dashboard needs the question and answer)."""
+        return await self._store.get(result_id)
+
+    async def list_records(
+        self, *, limit: int, label: Label | None = None, before: str | None = None
+    ) -> tuple[list[VerificationRecord], str | None]:
+        records = await self._store.list(limit=limit + 1, label=label, before=before)
+        page = records[:limit]
+        return page, (page[-1].result.id if len(records) > limit else None)
+
     async def list(
         self, *, limit: int, label: Label | None = None, before: str | None = None
     ) -> tuple[list[VerificationResult], str | None]:

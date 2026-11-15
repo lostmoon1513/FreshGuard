@@ -162,3 +162,19 @@ def test_reverify_unknown_id_404_and_needs_key():
         r = client.post("/v1/verifications/nope/reverify", headers=KEY)
         assert r.status_code == 404 and r.json()["error"]["code"] == "not_found"
         assert client.post("/v1/verifications/nope/reverify").status_code == 401
+
+
+def test_dashboard_page_is_served_without_a_key():
+    with make_client() as client:
+        r = client.get("/dashboard")
+        assert r.status_code == 200 and "text/html" in r.headers["content-type"]
+        assert "FreshGuard" in r.text
+
+
+def test_fetch_and_list_include_question_and_answer_for_the_dashboard():
+    with make_client() as client:
+        made = client.post("/v1/verifications?wait=true", json=BODY, headers=KEY).json()
+        one = client.get(f"/v1/verifications/{made['id']}", headers=KEY).json()
+        assert one["question"] == BODY["question"] and one["answer"] == BODY["answer"]
+        listed = client.get("/v1/verifications", headers=KEY).json()["items"][0]
+        assert listed["answer"] == BODY["answer"] and listed["question"] == BODY["question"]

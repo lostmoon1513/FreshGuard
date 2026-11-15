@@ -27,3 +27,11 @@ rate limit like a submit.
 
 Use it for TTL re-checks: an answer that was `fresh` last week may be `stale` today.
 SDK: `fg.reverify(id)` then `fg.wait(new.id)`.
+
+## GET /dashboard
+A human-facing page (no API key needed to load it; it asks for the key and then calls `/v1`).
+Lists recent results with label, confidence and age, shows claims and quoted evidence with links,
+and has buttons to check a new answer and to re-verify.
+
+Note: `GET /v1/verifications` and `GET /v1/verifications/{id}` also include `question`, `answer`
+and `answer_generated_at` alongside the result fields.

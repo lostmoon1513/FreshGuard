@@ -11,13 +11,15 @@ from typing import Any
 from fastapi import APIRouter, Depends, FastAPI, Header, Query, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from app.api.dashboard import DASHBOARD_HTML
 from app.api.errors import ApiError, code_for_status, error_body, validation_message
 from app.api.ratelimit import RateLimiter
 from app.api.security import key_is_valid
 from app.config import Settings
+from app.db.store import VerificationRecord
 from app.logging import new_request_id, set_request_id
 from app.schemas.labels import Label, VerificationStatus
 from app.schemas.verification import VerificationRequest, VerificationResult
@@ -30,6 +32,19 @@ _DONE = (VerificationStatus.COMPLETED, VerificationStatus.FAILED)
 
 def _dump(result: VerificationResult) -> dict[str, Any]:
     return result.model_dump(mode="json")
+
+
+def _dump_record(record: VerificationRecord) -> dict[str, Any]:
+    """Result plus what was asked, so a UI can show the question and answer."""
+    out = _dump(record.result)
+    out["question"] = record.request.question
+    out["answer"] = record.request.answer
+    out["answer_generated_at"] = (
+        record.request.answer_generated_at.isoformat()
+        if record.request.answer_generated_at
+        else None
+    )
+    return out
 
 
 def create_app(service: VerificationService, settings: Settings) -> FastAPI:
@@ -107,6 +122,11 @@ def create_app(service: VerificationService, settings: Settings) -> FastAPI:
             )
 
     # ---- routes ----------------------------------------------------------------------------
+    @app.get("/dashboard", include_in_schema=False)
+    async def dashboard() -> HTMLResponse:
+        # The page holds no secrets: it asks for the API key and sends it with each call.
+        return HTMLResponse(DASHBOARD_HTML)
+
     @app.get("/health")
     async def health() -> dict[str, str]:
         return {"status": "ok"}
@@ -153,10 +173,10 @@ def create_app(service: VerificationService, settings: Settings) -> FastAPI:
 
     @v1.get("/verifications/{verification_id}")
     async def fetch(verification_id: str) -> dict[str, Any]:
-        result = await service.get(verification_id)
-        if result is None:
+        record = await service.get_record(verification_id)
+        if record is None:
             raise ApiError(404, "not_found", "Verification not found.")
-        return _dump(result)
+        return _dump_record(record)
 
     @v1.get("/verifications")
     async def list_verifications(
@@ -164,8 +184,8 @@ def create_app(service: VerificationService, settings: Settings) -> FastAPI:
         label: Label | None = None,
         before: str | None = Query(default=None, max_length=64),
     ) -> dict[str, Any]:
-        items, next_before = await service.list(limit=limit, label=label, before=before)
-        return {"items": [_dump(r) for r in items], "next_before": next_before}
+        items, next_before = await service.list_records(limit=limit, label=label, before=before)
+        return {"items": [_dump_record(r) for r in items], "next_before": next_before}
 
     app.include_router(v1)
     return app
