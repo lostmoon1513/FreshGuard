@@ -15,3 +15,21 @@ def test_major_outlets_are_tier_2(url):
 def test_lookalike_hosts_stay_tier_3():
     assert classify_source("https://cbsnews.com.evil.example/x") == SourceTier.TIER_3
     assert classify_source("https://notcbsnews.com/x") == SourceTier.TIER_3
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://m.economictimes.indiatimes.com/news/x",
+        "https://www.moneycontrol.com/technology/x",
+        "https://www.cnbc.com/2026/04/20/x.html",
+        "https://techcrunch.com/2026/09/01/x",
+    ],
+)
+def test_more_established_outlets_are_tier_2(url):
+    assert classify_source(url) == SourceTier.TIER_2
+
+
+def test_other_indiatimes_hosts_and_lookalikes_stay_tier_3():
+    assert classify_source("https://blogs.indiatimes.com/x") == SourceTier.TIER_3
+    assert classify_source("https://moneycontrol.com.fake.example/x") == SourceTier.TIER_3

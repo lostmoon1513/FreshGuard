@@ -45,6 +45,12 @@ TIER2_DOMAINS: frozenset[str] = frozenset(
         "npr.org", "thehindu.com", "indianexpress.com", "nature.com", "science.org",
         "arstechnica.com", "wikipedia.org", "britannica.com", "cbsnews.com", "nbcnews.com",
         "abcnews.go.com", "cnn.com", "aljazeera.com", "dw.com", "theverge.com",
+        # more established newsrooms (Indian and international)
+        "economictimes.indiatimes.com", "timesofindia.indiatimes.com", "hindustantimes.com",
+        "ndtv.com", "livemint.com", "moneycontrol.com", "business-standard.com", "cnbc.com",
+        "forbes.com", "businessinsider.com", "techcrunch.com", "wired.com", "time.com",
+        "usatoday.com", "latimes.com", "politico.com", "axios.com", "euronews.com",
+        "france24.com", "scmp.com", "abc.net.au", "cbc.ca", "variety.com",
         # vendors speaking about their own products (python.org, Microsoft docs, ...)
         "python.org", "microsoft.com", "openai.com", "anthropic.com", "apple.com",
     }

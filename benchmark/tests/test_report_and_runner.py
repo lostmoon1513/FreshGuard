@@ -144,3 +144,28 @@ def test_write_report_end_to_end(tmp_path):
 def test_argument_parsing_defaults():
     args = rb.parse_args(["--limit", "5", "--kind", "static"])
     assert args.limit == 5 and args.kind == ["static"] and args.concurrency == 2
+
+
+def test_runner_stops_at_first_auth_error(tmp_path, monkeypatch, capsys):
+    import freshguard
+
+    class Denied:
+        def __init__(self, *a, **k):
+            pass
+
+        def health(self):
+            return True
+
+        def submit(self, *a, **k):
+            raise freshguard.AuthError("Missing or invalid API key.")
+
+        def close(self):
+            pass
+
+    monkeypatch.setattr(freshguard, "FreshGuard", Denied)
+    code = rb.main(["--limit", "6", "--concurrency", "1", "--resume", str(tmp_path)])
+    out = capsys.readouterr().out
+    assert code == 0 and "rejected the API key" in out
+    assert (
+        len(rb.read_results(tmp_path / "results.jsonl")) <= 2
+    )  # stopped early, not all 6

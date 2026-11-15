@@ -199,6 +199,14 @@ def main(argv: list[str] | None = None) -> int:
                         outcome.get("error") or ""
                     )
                     outage_streak = outage_streak + 1 if unavailable else 0
+                    if "AuthError" in (outcome.get("error") or ""):
+                        print(
+                            "\nThe server rejected the API key. Set it with --api-key or "
+                            "$env:FRESHGUARD_API_KEY (the same value the server uses). Stopping."
+                        )
+                        for pending in futures:
+                            pending.cancel()
+                        break
                     print(f"[{finished}/{len(todo)}] {ok}{outcome['id']} expected={outcome['expected']} "
                           f"got={outcome['label'] or outcome['status']} ({outcome['latency_s']}s)")  # fmt: skip
                     if outage_streak >= OUTAGE_LIMIT:
