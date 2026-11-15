@@ -16,7 +16,9 @@ from app.schemas.labels import Volatility
 _TIME_CUES = re.compile(
     r"\b(current(?:ly)?|latest|newest|now|today|recent(?:ly)?|presently|as of|ceo|president|"
     r"prime minister|chairman|price|costs?|ranked?|record|version|release[sd]?|valuation|"
-    r"market cap|population|champion|leads?|headquarter\w*|owns?|owned)\b",
+    r"market cap|population|champion|leads?|headquarter\w*|owns?|owned|reigning|monarch|king|"
+    r"queen|chancellor|chair(?:man|woman|person)?|secretary|minister|governor|mayor|director|"
+    r"leader|head of|incumbent|winner|holder|most advanced|best)\b",
     re.IGNORECASE,
 )
 _FAST_CUES = re.compile(

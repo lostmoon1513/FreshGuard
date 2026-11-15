@@ -341,3 +341,26 @@ async def test_sources_use_url_date_only_when_no_other_date():
     by_url = {str(s.document.url): s.document.published_at for s in out.sources}
     assert by_url["https://www.npr.org/2021/11/30/1/x"].year == 2021
     assert by_url["https://www.npr.org/2021/11/30/2/y"] == days_ago(3)
+
+
+def test_guard_never_leaves_office_holder_claims_static():
+    """Benchmark c022: 'Queen Elizabeth II is the reigning British monarch' was classed static
+    and passed as fresh without any search."""
+    for text in (
+        "Queen Elizabeth II is the reigning British monarch.",
+        "Jerome Powell is the Chair of the Federal Reserve.",
+        "Olaf Scholz is the Chancellor of Germany.",
+        "Argentina is the reigning FIFA World Cup champion.",
+        "Antony Blinken is the US Secretary of State.",
+    ):
+        assert guard(text, Volatility.STATIC, None, NOW)[0] == Volatility.SLOW, text
+
+
+def test_guard_keeps_timeless_facts_static():
+    for text in (
+        "World War II ended in 1945.",
+        "Water boils at 100 degrees Celsius at sea level.",
+        "Python was created by Guido van Rossum.",
+        "The chemical formula of water is H2O.",
+    ):
+        assert guard(text, Volatility.STATIC, None, NOW)[0] == Volatility.STATIC, text
