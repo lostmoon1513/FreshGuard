@@ -173,3 +173,24 @@ def test_health_and_context_manager():
     with FreshGuard("http://x", transport=transport):
         pass
     assert transport.closed is True
+
+
+def test_reverify_posts_to_reverify_path_and_is_not_retried():
+    fg, t, _ = make(ok(PENDING, 202))
+    v = fg.reverify("abc123")
+    assert v.status == "pending"
+    call = t.calls[0]
+    assert (
+        call["method"] == "POST"
+        and call["url"] == "http://api.test/v1/verifications/abc123/reverify"
+    )
+    fg2, t2, _ = make(err(500, "internal_error", "boom"), ok(PENDING, 202))
+    with pytest.raises(ServerError):
+        fg2.reverify("abc123")
+    assert len(t2.calls) == 1
+
+
+def test_reverify_unknown_id_raises_not_found():
+    fg, _, _ = make(err(404, "not_found", "Verification not found."))
+    with pytest.raises(NotFoundError):
+        fg.reverify("nope")

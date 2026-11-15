@@ -76,6 +76,13 @@ class FreshGuard:
         _core.raise_for_response(resp)
         return _core.parse_verification(resp)
 
+    def reverify(self, verification_id: str) -> Verification:
+        """Check the same question and answer again. Starts a NEW verification (status
+        "pending") whose metadata has `reverified_from`. Not retried (could duplicate)."""
+        resp = self._send("POST", f"/v1/verifications/{verification_id}/reverify", retry=False)
+        _core.raise_for_response(resp)
+        return _core.parse_verification(resp)
+
     def get(self, verification_id: str) -> Verification:
         resp = self._send("GET", f"/v1/verifications/{verification_id}")
         _core.raise_for_response(resp)

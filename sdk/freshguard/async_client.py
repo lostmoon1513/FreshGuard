@@ -69,6 +69,14 @@ class AsyncFreshGuard:
         _core.raise_for_response(resp)
         return _core.parse_verification(resp)
 
+    async def reverify(self, verification_id: str) -> Verification:
+        """Async twin of `FreshGuard.reverify`."""
+        resp = await self._send(
+            "POST", f"/v1/verifications/{verification_id}/reverify", retry=False
+        )
+        _core.raise_for_response(resp)
+        return _core.parse_verification(resp)
+
     async def get(self, verification_id: str) -> Verification:
         resp = await self._send("GET", f"/v1/verifications/{verification_id}")
         _core.raise_for_response(resp)
