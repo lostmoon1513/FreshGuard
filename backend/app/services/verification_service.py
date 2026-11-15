@@ -18,6 +18,9 @@ from app.logging import get_request_id, set_request_id
 from app.schemas.labels import Label, VerificationStatus
 from app.schemas.verification import VerificationRequest, VerificationResult
 
+REVERIFIED_FROM = "reverified_from"
+MAX_METADATA_KEYS = 20  # mirrors the schema limit
+
 log = logging.getLogger(__name__)
 
 RunFn = Callable[[VerificationRequest, str], Awaitable[VerificationResult]]
@@ -66,6 +69,18 @@ class VerificationService:
         self._tasks.add(task)
         task.add_done_callback(self._tasks.discard)
         return pending
+
+    async def reverify(self, result_id: str) -> VerificationResult | None:
+        """Check the same question and answer again as a NEW verification (history is kept).
+        The new record's metadata gets `reverified_from` = the original id. None if unknown."""
+        record = await self._store.get(result_id)
+        if record is None:
+            return None
+        metadata = {**record.request.metadata, REVERIFIED_FROM: result_id}
+        if len(metadata) > MAX_METADATA_KEYS:  # keep the link, drop the oldest caller key
+            drop = next(k for k in metadata if k != REVERIFIED_FROM)
+            del metadata[drop]
+        return await self.submit(record.request.model_copy(update={"metadata": metadata}))
 
     async def get(self, result_id: str) -> VerificationResult | None:
         record = await self._store.get(result_id)

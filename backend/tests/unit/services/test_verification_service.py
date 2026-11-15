@@ -131,3 +131,35 @@ async def test_shutdown_cancels_running_jobs_and_marks_failed():
     await service.shutdown()
     result = await service.get(pending.id)
     assert result.status == VerificationStatus.FAILED
+
+
+async def test_reverify_creates_a_new_linked_verification_and_keeps_history():
+    service, store = make_service(ok_run)
+    first = await service.submit(REQ)
+    await service.wait(first.id, timeout=2)
+    again = await service.reverify(first.id)
+    assert again is not None and again.id != first.id
+    assert again.metadata == {"message_id": "m1", "reverified_from": first.id}
+    done = await service.wait(again.id, timeout=2)
+    assert done.status == VerificationStatus.COMPLETED
+    original = await service.get(first.id)
+    assert original.metadata == {"message_id": "m1"}  # history untouched
+
+
+async def test_reverify_unknown_id_is_none():
+    service, _ = make_service(ok_run)
+    assert await service.reverify("nope") is None
+
+
+async def test_reverify_of_a_reverify_replaces_the_link_and_respects_metadata_limit():
+    service, _ = make_service(ok_run)
+    full = VerificationRequest(
+        question="q?", answer="a", metadata={f"k{i}": "v" for i in range(20)}
+    )
+    first = await service.submit(full)
+    await service.wait(first.id, timeout=2)
+    second = await service.reverify(first.id)
+    assert len(second.metadata) == 20 and second.metadata["reverified_from"] == first.id
+    await service.wait(second.id, timeout=2)
+    third = await service.reverify(second.id)
+    assert len(third.metadata) == 20 and third.metadata["reverified_from"] == second.id

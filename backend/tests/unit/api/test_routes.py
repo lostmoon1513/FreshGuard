@@ -145,3 +145,20 @@ def test_incoming_request_id_is_echoed_only_if_safe():
         assert ok.headers["X-Request-ID"] == "abc-123"
         bad = client.get("/health", headers={"X-Request-ID": "bad id with spaces"})
         assert bad.headers["X-Request-ID"] != "bad id with spaces"
+
+
+def test_reverify_creates_new_job_linked_to_original():
+    with make_client() as client:
+        first = client.post("/v1/verifications", json=BODY, headers=KEY).json()
+        again = client.post(f"/v1/verifications/{first['id']}/reverify?wait=true", headers=KEY)
+        assert again.status_code == 200
+        data = again.json()
+        assert data["id"] != first["id"] and data["metadata"]["reverified_from"] == first["id"]
+        assert data["metadata"]["m"] == "1" and data["status"] == "completed"
+
+
+def test_reverify_unknown_id_404_and_needs_key():
+    with make_client() as client:
+        r = client.post("/v1/verifications/nope/reverify", headers=KEY)
+        assert r.status_code == 404 and r.json()["error"]["code"] == "not_found"
+        assert client.post("/v1/verifications/nope/reverify").status_code == 401

@@ -113,14 +113,9 @@ def create_app(service: VerificationService, settings: Settings) -> FastAPI:
 
     v1 = APIRouter(prefix="/v1", dependencies=[Depends(require_key)])
 
-    @v1.post("/verifications", status_code=202, dependencies=[Depends(throttle)])
-    async def submit(
-        body: VerificationRequest,
-        response: Response,
-        wait: bool = False,
-        timeout: int = Query(default=60, ge=1, le=120),
+    async def respond(
+        pending: VerificationResult, response: Response, wait: bool, timeout: int
     ) -> dict[str, Any]:
-        pending = await service.submit(body)
         if not wait:
             return {"id": pending.id, "status": pending.status.value}
         result = await service.wait(pending.id, timeout=timeout)
@@ -130,6 +125,31 @@ def create_app(service: VerificationService, settings: Settings) -> FastAPI:
             response.status_code = 200
             return _dump(result)
         return {"id": result.id, "status": result.status.value}
+
+    @v1.post("/verifications", status_code=202, dependencies=[Depends(throttle)])
+    async def submit(
+        body: VerificationRequest,
+        response: Response,
+        wait: bool = False,
+        timeout: int = Query(default=60, ge=1, le=120),
+    ) -> dict[str, Any]:
+        return await respond(await service.submit(body), response, wait, timeout)
+
+    @v1.post(
+        "/verifications/{verification_id}/reverify",
+        status_code=202,
+        dependencies=[Depends(throttle)],
+    )
+    async def reverify(
+        verification_id: str,
+        response: Response,
+        wait: bool = False,
+        timeout: int = Query(default=60, ge=1, le=120),
+    ) -> dict[str, Any]:
+        pending = await service.reverify(verification_id)
+        if pending is None:
+            raise ApiError(404, "not_found", "Verification not found.")
+        return await respond(pending, response, wait, timeout)
 
     @v1.get("/verifications/{verification_id}")
     async def fetch(verification_id: str) -> dict[str, Any]:

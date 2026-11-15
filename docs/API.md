@@ -16,3 +16,14 @@ Errors: `{"error": {"code", "message"}}` with codes `unauthorized` 401, `not_fou
 
 Code map: `app/api/` (routes, auth, rate limit, errors) -> `app/services/` (job lifecycle) ->
 `app/engine/` (verification) and `app/db/` (storage).
+
+## POST /v1/verifications/{id}/reverify
+Checks the same question and answer again, as a NEW verification (the old one is kept, so you
+get a history). Same options and responses as `POST /v1/verifications`: `202 {"id","status"}`,
+or with `?wait=true&timeout=1..120` the finished result with `200`.
+The new result's `metadata` is the original metadata plus `reverified_from` = the original id.
+Unknown id: `404 {"error":{"code":"not_found",...}}`. Needs the `X-API-Key` header. Counted by the
+rate limit like a submit.
+
+Use it for TTL re-checks: an answer that was `fresh` last week may be `stale` today.
+SDK: `fg.reverify(id)` then `fg.wait(new.id)`.
