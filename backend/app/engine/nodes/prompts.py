@@ -80,6 +80,9 @@ of date.
 not in a quote or in the original claim.
 - `evidence` is the number of the quote that supports your sentence.
 - If the quotes do not establish a replacement fact, return correction = null.
+- A quote that only says when someone started or stopped a role does not tell you who holds it \
+today. Write a sentence stating the current holder only if a quote says so; otherwise return \
+correction = null.
 {DATA_RULE}"""
 
 

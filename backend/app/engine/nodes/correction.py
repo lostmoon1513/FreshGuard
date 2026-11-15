@@ -9,6 +9,7 @@ from app.engine.nodes.state import ClaimWork
 from app.engine.nodes.text import capitalised_terms, numbers_in
 from app.engine.providers.errors import ProviderError
 from app.engine.providers.models import ModelTier
+from app.engine.rules.windows import Recency, classify_recency
 from app.schemas.labels import Label, Stance
 
 MAX_QUOTES = 3
@@ -19,11 +20,19 @@ async def suggest_correction(claim: ClaimWork, deps: Deps) -> ClaimWork:
     the original claim. Otherwise no correction is offered (honest > clever)."""
     if claim.verdict is None or claim.verdict.label != Label.STALE:
         return claim
+    # A correction states what is true NOW, so it may only rest on quotes from sources that are
+    # recent for this claim. An old article ("Yaccarino became CEO in 2023") can be outdated itself.
+    now = deps.clock()
+    window = claim.verdict.freshness_window_days
     contra = [
-        e for e in claim.evidence if e.stance == Stance.CONTRADICTS and e.integrity_ok is True
+        e
+        for e in claim.evidence
+        if e.stance == Stance.CONTRADICTS
+        and e.integrity_ok is True
+        and classify_recency(e.published_at, now, window) == Recency.RECENT
     ][:MAX_QUOTES]
     if not contra:
-        return claim
+        return claim.noted("no correction: no recent source states the current value")
     quotes = [
         (
             str(e.url),

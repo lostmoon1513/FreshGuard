@@ -287,6 +287,19 @@ async def test_decide_stale_then_correction_grounded():
         assert (await suggest_correction(c, deps_for(FakeLLM([bad])))).correction is None
 
 
+async def test_correction_withheld_when_evidence_is_old_or_undated():
+    c = await verified_stale_claim()
+    window = c.verdict.freshness_window_days
+    assert window  # the claim is time-sensitive, so age matters
+    good = {"correction": "Priya Raman is the chief executive of Acme Corp.", "evidence": 1}
+    for published in (days_ago(window + 400), None):
+        evidence = [e.model_copy(update={"published_at": published}) for e in c.evidence]
+        old = c.model_copy(update={"evidence": evidence})
+        llm = FakeLLM([good])
+        out = await suggest_correction(old, deps_for(llm))
+        assert out.correction is None and not llm.calls
+
+
 async def test_correction_skipped_unless_stale():
     c = claim_with_source()
     c = decide(c, deps_for())
