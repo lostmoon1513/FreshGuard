@@ -73,6 +73,35 @@ flowchart TB
 The verification engine (`backend/app/engine/`) never imports the API, database or services
 layers; this is enforced by a test.
 
+## How Tavily is used
+
+Tavily is the evidence engine. For each time-sensitive claim the model writes search queries
+(for example "Twitter CEO 2026"), and `TavilySearch` returns ranked results. Search snippets are
+not trusted as evidence on their own. For every hit FreshGuard:
+
+1. fetches the full page and reads its publish and last-modified dates;
+2. assigns a source tier (official, major newsroom, other) with deterministic code;
+3. asks the model whether the page supports or contradicts the claim and to copy a quote;
+4. keeps the quote only if it is a verbatim substring of the fetched page.
+
+If Tavily returns nothing useful, the claim is re-queried once, and if there is still no
+evidence the label is `unverifiable`. Serper is a fallback provider behind the same interface.
+
+## Technologies used
+
+| Area | Technology |
+|---|---|
+| Web search / evidence retrieval | **Tavily** (primary), Serper (fallback) |
+| LLMs (extract claims, classify volatility, compare stance, draft corrections) | Google Gemini, Groq fallback, via LangChain adapters |
+| Orchestration | LangGraph |
+| Backend API | FastAPI, Pydantic v2, SQLAlchemy |
+| Database | PostgreSQL (Neon), SQLite for local tests |
+| Client | Python SDK on PyPI (`pip install freshguard`, httpx) |
+| Dashboard | One embedded HTML/JS page served by the API |
+| Demo app | LangGraph + Gemini + Chroma RAG chatbot, React UI |
+| Deployment | Docker, Render |
+| Quality | pytest, ruff, GitHub Actions CI |
+
 ## Try it
 
 **Dashboard.** Open `/dashboard`, paste the API key, and use "Check a new answer".
@@ -115,32 +144,42 @@ message (red "Out of date" with the correction and source, amber, green, or grey
 ## Benchmark
 
 `benchmark/` holds 81 hand-labeled claims (stale, fresh, unverifiable; single-claim, static,
-unknowable and multi-claim), with ground truth checked against dated sources on 2026-11-13.
+unknowable and multi-claim), with ground truth checked against dated sources.
 
-First full run (58 of 81 claims completed; 23 failed because the free-tier model quota ran out,
-so they are not counted):
+Full run on the final code, all 81 claims completed (2026-11-16):
 
 | Measure | Result |
 |---|---|
-| Harmful errors (stale shown as fresh, invented answer to an unknowable claim, false stale alarm) | 2 of 58 (3%) |
-| Stale answers flagged (`stale` or `potentially_stale`) | 93% |
-| Stale answers labeled exactly `stale` | 44% |
-| Unknowable claims correctly `unverifiable` | 89% |
-| Exact accuracy | 52% |
-| Median / p90 latency | 33 s / 48 s |
+| Exact accuracy | 84% (68 of 81) |
+| Harmful errors (stale shown as fresh, invented answer to an unknowable claim, false stale alarm) | 0 of 81 |
+| Stale answers flagged (`stale` or `potentially_stale`) | 97% (36 of 37) |
+| Stale answers labeled exactly `stale` | 76% (28 of 37) |
+| Stale answers shown as `fresh` | 0% |
+| Fresh answers labeled exactly `fresh` | 88% (29 of 33); the other 4 were `potentially_stale` |
+| Unverifiable claims labeled `unverifiable` | 100% (11 of 11) |
+| Median / p90 latency | 31 s / 60 s |
 
 How to read this honestly:
-- The system errs on the side of caution. Many correct-but-weakly-sourced answers come back
-  `potentially_stale` instead of `fresh` (45% of fresh claims were labeled exactly `fresh`).
-  A cautious label is a "please look", not a wrong answer.
-- Both harmful errors led to fixes (see `docs/DECISIONS.md` D40 and D43): one was a stance
-  misread of an ended role, the other a stale claim wrongly classed as static.
-- Some of these results were produced by earlier versions of the rules, and some claims could
-  not run. A re-run on the final code is the next step. Report: `benchmark/README.md`.
-- 81 claims is a small sample. Treat these numbers as a measurement of behavior, not a
-  guarantee.
+- The system errs on the side of caution. All 13 misses are cautious labels
+  (`potentially_stale` or `unverifiable`); none is a confident wrong answer. A cautious
+  label is a "please look", not a wrong answer. The weakest area is tech and product claims
+  (6 of 13 exact), where sources are often low-tier or undated.
+- One claim, "Jack Dorsey is the CEO of Twitter", came back `unverifiable` in this run (no
+  verified evidence was found) although it was `stale` in earlier runs. Search results vary
+  from run to run.
+- **A ground-truth label was corrected after this run.** The run flagged "Jensen Huang is the
+  CEO of Nvidia" as `stale`, and the dataset said `fresh`. Nvidia's Form 8-K shows Huang resigned
+  as CEO on 2026-11-12 ([source](https://www.sec.gov/Archives/edgar/data/0001045810/000104581026000082/nvidiaannouncesceotransiti.htm)),
+  so FreshGuard was right and the label had gone out of date. We corrected it (`c037`, see
+  `docs/DECISIONS.md` D46). Before the correction the run showed 1 harmful error and 83%
+  accuracy. We show the corrected numbers and say so. This is also a small demonstration of the problem the
+  project solves: facts change under you.
+- Earlier rule changes (D38 to D45) were made after looking at earlier benchmark runs on the same
+  claims, so this is a development benchmark, not a blind test. 81 claims is a small sample.
+  Treat the numbers as a measurement of behavior, not a guarantee.
 
-Reproduce: start the backend, then `cd benchmark && python run_benchmark.py --limit 10`.
+Reproduce: start the backend, then `cd benchmark && python run_benchmark.py --concurrency 1`.
+Details and the full miss list: `benchmark/README.md`.
 
 ## Repository layout
 
@@ -155,14 +194,36 @@ render.yaml  Render blueprint for the hosted API
 
 ## Run it locally
 
+You need Python 3.11+ and API keys for Gemini (or Groq) and Tavily.
+
+**1. Backend**
+
 ```bash
 cd backend
 python -m venv .venv && source .venv/bin/activate     # Windows: .venv\Scripts\activate
 pip install -e ".[dev]"
-cp .env.example .env                                   # add Gemini/Groq and Tavily keys
+cp .env.example .env        # Windows: copy .env.example .env, then add your keys
 uvicorn app.main:app --port 8000
-pytest -q && ruff check .
 ```
+
+Check it: open `http://localhost:8000/docs`. Run the tests with `pytest -q && ruff check .`.
+
+**2. SDK** (to call the API from your own app)
+
+```bash
+pip install freshguard
+```
+
+**3. Demo chatbot** (optional, uses its own virtual environment)
+
+```bash
+cd demo/backend
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+# in demo/backend/.env set GOOGLE_API_KEY, FRESHGUARD_BASE_URL, FRESHGUARD_API_KEY, USE_MOCK_FRESHGUARD=false
+```
+
+Full steps for the bot and its UI: `demo/README.md`.
 
 Deployment (Render + Neon Postgres): `docs/DEPLOY.md`.
 

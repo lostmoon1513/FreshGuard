@@ -24,7 +24,7 @@ def test_shipped_dataset_is_valid_and_balanced():
     assert kinds["static"] >= 5 and kinds["unknown"] >= 5 and kinds["multi"] >= 5
     assert len({i.answer for i in items if i.kind == "single"}) > 40
     for item in items:
-        assert item.verified_on == "2026-11-13"
+        assert item.verified_on in ("2026-11-13", "2026-11-16")
         if item.basis == "verified" and item.source:
             assert item.source.startswith("https://")
 
