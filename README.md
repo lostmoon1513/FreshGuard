@@ -141,6 +141,10 @@ facts. It answers at once; FreshGuard verifies in the background and a badge app
 message (red "Out of date" with the correction and source, amber, green, or grey). See
 `demo/README.md`.
 
+| A current answer | An out-of-date answer |
+|---|---|
+| ![Green badge: Verified current](docs/images/demo-fresh.png) | ![Red badge: Out of date](docs/images/demo-stale.png) |
+
 ## Benchmark
 
 `benchmark/` holds 81 hand-labeled claims (stale, fresh, unverifiable; single-claim, static,
