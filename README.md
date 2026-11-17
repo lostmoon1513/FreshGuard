@@ -2,6 +2,9 @@
 
 **Catch stale answers before your users do.**
 
+Team KIZUNA, Global AI Hackathon (Tavily: Stale-Answer Detector).  
+**[Watch the demo video](https://drive.google.com/file/d/1cRhJRPCTnj9ciTKxgaG9zsYetkbUen6g/view?usp=sharing)**
+
 AI apps answer confidently from knowledge that has quietly gone out of date: the CEO changed,
 a new version shipped, a law was replaced. FreshGuard checks an AI answer against current web
 sources, labels it, and shows the evidence it relied on. It never guesses: when it cannot find
