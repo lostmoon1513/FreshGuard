@@ -11,6 +11,5 @@ langchain-chroma
 chromadb
 langgraph
 
-# The real FreshGuard SDK lives in this repo (FreshGuard/sdk). Install it into the same venv:
-#     pip install -e ../../sdk        (run from demo/backend)
-# Required when USE_MOCK_FRESHGUARD=false; the mock needs nothing extra.
+# The FreshGuard SDK (published on PyPI). Used when USE_MOCK_FRESHGUARD=false; the mock needs nothing extra.
+freshguard>=0.1.0

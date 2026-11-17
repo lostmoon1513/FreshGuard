@@ -12,7 +12,7 @@ FastAPI backend (port 8001)
    |-- LangGraph:  retrieve -> generate           (Gemini + Chroma)
    |-- FreshGuard layer: submit (background) -> poll -> badge
          |-- MockFreshGuard   (default, offline, follows the contract)
-         |-- RealFreshGuard   (the repo's `freshguard` SDK, in ../sdk)
+         |-- RealFreshGuard   (the `freshguard` SDK from PyPI)
 ```
 
 ## Folder map
@@ -69,16 +69,16 @@ Open http://localhost:5173 and click a sample question.
 Default is the mock (`USE_MOCK_FRESHGUARD=true`), so you can demo with no friend's server.
 The mock waits `MOCK_DELAY_SECONDS` (default 6) to imitate the real 10-60 s verification.
 
-To switch to the real service (the SDK is in this repo's `sdk/` folder):
-```powershell
-# terminal 1: the FreshGuard backend on port 8000  (cd backend; uvicorn app.main:app --port 8000)
-# terminal 2: this chatbot backend (demo/backend, venv active)
-pip install -e ../../sdk
-# in demo/backend/.env:
-#   USE_MOCK_FRESHGUARD=false
-#   FRESHGUARD_BASE_URL=http://localhost:8000
-#   FRESHGUARD_API_KEY=<same key as the FreshGuard server>
+To switch to the real service, the SDK (`freshguard`, from PyPI) is already installed by
+`pip install -r requirements.txt`. Then set these in `demo/backend/.env`:
 ```
+USE_MOCK_FRESHGUARD=false
+FRESHGUARD_BASE_URL=https://freshguard-api-uea0.onrender.com   # or http://localhost:8000 for a local FreshGuard backend
+FRESHGUARD_API_KEY=<the FreshGuard server's API key>
+```
+The hosted service on Render sleeps when idle: open `<base url>/health` first and wait for
+`{"status":"ok"}` (up to about a minute). To run FreshGuard locally instead, start it from the repo's
+`backend/` folder with `uvicorn app.main:app --port 8000` and use the localhost URL.
 Only `real_client.py` touches the SDK. Nothing else changes.
 
 ### Checking that the SDK works
@@ -111,7 +111,7 @@ While polling, a transient SDK error (network blip, 429, 5xx) keeps the badge on
 Run the automated checks: `cd backend; pip install -r requirements-dev.txt; pytest`
 (tests use the mock and a fake LLM, so they need no API key or network).
 `tests/test_sdk_integration.py` runs the *real* SDK over a fake HTTP transport; it is skipped unless
-the SDK is installed (`pip install -e ../../sdk`).
+the SDK is installed (`pip install freshguard`, already in `requirements.txt`).
 
 **Real-FreshGuard caveat:** the mock's verdicts are keyword rules written from the contract.
 The real service decides from live web evidence, so some outcomes (e.g. which source it cites, or
@@ -123,4 +123,4 @@ Twitter CEO, UK PM), but the real FreshGuard judges against whatever the web say
 
 - Model names (`GEMINI_CHAT_MODEL`, `GEMINI_EMBEDDING_MODEL`) live in `.env`; change them if Google renames models.
 - Conversation history is in memory and message-to-job mapping too; restarting the backend clears both (fine for a demo).
-- Not yet built (contract M8): TTL re-verification and the `reverify` endpoint.
+- The FreshGuard API and SDK support `reverify`, but this chatbot does not call it yet (no re-check button).
